@@ -30,10 +30,10 @@ def run_scraper():
             img_tag = card.find("img")
             desc_tag = card.select_one(".content-card__description")
 
-            title = a_tag.get("title") or a_tag.get_text(strip=True) if a_tag else ""
+            title = a_tag.get_text(strip=True) if a_tag else "No title"
             url = base_url + a_tag["href"] if a_tag else ""
             photo_url = img_tag.get("src") if img_tag else ""
-            summary = desc_tag.get_text(strip=True) if desc_tag else ""
+            summary = desc_tag.get_text(strip=True) if desc_tag else "No summary"
             date = datetime.now().strftime("%Y-%m-%d")
 
             articles.append({
