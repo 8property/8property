@@ -30,10 +30,11 @@ def run_scraper():
             img_tag = card.find("img")
             desc_tag = card.select_one(".content-card__description")
 
+            # ✅ Robust fallback for title and summary
             title = a_tag.get_text(strip=True) if a_tag else "No title"
+            summary = desc_tag.get_text(strip=True) if desc_tag else "No summary"
             url = base_url + a_tag["href"] if a_tag else ""
             photo_url = img_tag.get("src") if img_tag else ""
-            summary = desc_tag.get_text(strip=True) if desc_tag else "No summary"
             date = datetime.now().strftime("%Y-%m-%d")
 
             articles.append({
@@ -49,7 +50,7 @@ def run_scraper():
     except Exception as e:
         return jsonify({"error": str(e)})
 
-# ✅ This block ensures Flask runs properly on Render
+# ✅ Required by Render to expose a web-accessible port
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
