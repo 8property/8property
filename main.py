@@ -14,25 +14,22 @@ def home():
 def run_scraper():
     base_url = "https://www.hk01.com"
     channel_url = f"{base_url}/channel/399/地產樓市"
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
+    headers = {"User-Agent": "Mozilla/5.0"}
 
     try:
         resp = requests.get(channel_url, headers=headers)
         soup = BeautifulSoup(resp.text, "html.parser")
 
+        article_cards = soup.select("div.content-card--article")
         articles = []
-        cards = soup.select("div.content-card--article")[:5]
 
-        for card in cards:
+        for card in article_cards[:5]:
             a_tag = card.find("a", href=True)
             img_tag = card.find("img")
             desc_tag = card.select_one(".content-card__description")
 
-            # ✅ Robust fallback for title and summary
-            title = a_tag.get_text(strip=True) if a_tag else "No title"
-            summary = desc_tag.get_text(strip=True) if desc_tag else "No summary"
+            title = a_tag.get_text(strip=True) if a_tag else ""
+            summary = desc_tag.get_text(strip=True) if desc_tag else ""
             url = base_url + a_tag["href"] if a_tag else ""
             photo_url = img_tag.get("src") if img_tag else ""
             date = datetime.now().strftime("%Y-%m-%d")
@@ -50,7 +47,7 @@ def run_scraper():
     except Exception as e:
         return jsonify({"error": str(e)})
 
-# ✅ Required by Render to expose a web-accessible port
+# ✅ Required for Render
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
