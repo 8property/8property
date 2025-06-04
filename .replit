@@ -11,3 +11,7 @@ packages = ["geckodriver"]
 [[ports]]
 localPort = 8080
 externalPort = 80
+
+[[ports]]
+localPort = 10000
+externalPort = 3000
