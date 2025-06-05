@@ -1,7 +1,7 @@
 from flask import Flask, jsonify
 import requests
 from bs4 import BeautifulSoup
-import os
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -18,21 +18,22 @@ def run_scraper():
     try:
         resp = requests.get(channel_url, headers=headers)
         soup = BeautifulSoup(resp.text, "html.parser")
-
         article_cards = soup.select("div.content-card--article")
+
         articles = []
-
-        for card in article_cards[:5]:  # limit to first 5 articles
+        for card in article_cards[:5]:  # Limit to 5 articles
             a_tag = card.find("a", href=True)
-            img_tag = card.find("img")
-            title_tag = card.select_one(".content-card__title")
-            date_tag = card.select_one(".meta-block__publish-date")
+            title_tag = card.select_one("div.content-card__title > span")
+            image_tag = card.find("img", src=True)
 
-            url = base_url + a_tag["href"] if a_tag else ""
-            photo_url = img_tag["src"] if img_tag and "src" in img_tag.attrs else ""
-            title = title_tag.text.strip() if title_tag else ""
-            date = date_tag.text.strip() if date_tag else ""
-            summary = ""
+            if not a_tag or not title_tag:
+                continue
+
+            title = title_tag.get_text(strip=True)
+            url = base_url + a_tag["href"]
+            date = datetime.today().strftime('%Y-%m-%d')
+            summary = "No summary"
+            photo_url = image_tag["src"] if image_tag else ""
 
             articles.append({
                 "title": title,
@@ -45,8 +46,9 @@ def run_scraper():
         return jsonify({"articles": articles})
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)})
 
 if __name__ == "__main__":
+    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
