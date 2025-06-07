@@ -14,20 +14,22 @@ def home():
 @app.route("/run", methods=["GET"])
 def run_scraper():
     try:
-        # Setup headless Chrome
+        # Setup headless Chrome for Render
         options = Options()
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--window-size=1920x1080")
+
         driver = webdriver.Chrome(options=options)
 
-        # Visit HK01 Property Market page
+        # Step 1: Go to HK01 property market page
         driver.get("https://www.hk01.com/channel/399/地產樓市")
         time.sleep(3)
         soup = BeautifulSoup(driver.page_source, "html.parser")
 
-        # Extract article links
+        # Step 2: Extract article links
         article_divs = soup.select("div.content-card--article")
         links = []
         for div in article_divs:
@@ -37,9 +39,17 @@ def run_scraper():
                 full_url = "https://www.hk01.com" + href if href.startswith("/") else href
                 links.append(full_url)
 
-        # Loop through article pages
+        # Step 3: Scrape up to 5 unique articles
         articles = []
+        seen_links = set()
+
         for url in links:
+            if len(articles) >= 5:
+                break
+            if url in seen_links:
+                continue
+            seen_links.add(url)
+
             try:
                 driver.get(url)
                 time.sleep(2)
@@ -49,22 +59,21 @@ def run_scraper():
                 title_tag = art_soup.find("h1")
                 title = title_tag.get_text(strip=True) if title_tag else ""
 
-                # Date from span with "出版"
+                # Date
                 date_text = ""
                 for span in art_soup.find_all("span"):
                     if span.get_text(strip=True).startswith("出版"):
                         date_text = span.get_text(strip=True).replace("出版", "").strip()
                         break
 
-                # Photo from og:image
+                # Photo
                 og_image = art_soup.find("meta", property="og:image")
                 photo_url = og_image["content"] if og_image else ""
 
-                # Summary from content
+                # Summary
                 paragraphs = art_soup.select("article p")
                 full_text = "\n".join([p.get_text(strip=True) for p in paragraphs])
                 summary = full_text[:300] + "..." if len(full_text) > 300 else full_text
-
 
                 articles.append({
                     "title": title,
@@ -76,7 +85,7 @@ def run_scraper():
 
             except Exception as e:
                 articles.append({
-                    "title": f"Error scraping {url}",
+                    "title": f"❌ Error scraping {url}",
                     "date": "",
                     "summary": str(e),
                     "photo_url": "",
