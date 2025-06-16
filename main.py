@@ -1,7 +1,6 @@
 from flask import Flask, jsonify
-import undetected_chromedriver as uc
+import requests
 from bs4 import BeautifulSoup
-import time
 import os
 
 app = Flask(__name__)
@@ -13,47 +12,39 @@ def home():
 @app.route("/run", methods=["GET"])
 def run_scraper():
     try:
-        # 1. Setup Chrome options
-        options = uc.ChromeOptions()
-        options.add_argument("--headless")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--window-size=1920x1080")
+        base_url = "https://www.hk01.com"
+        channel_url = f"{base_url}/channel/399/地產樓市"
+        headers = {"User-Agent": "Mozilla/5.0"}
 
-        driver = uc.Chrome(options=options)
+        # Get the main page
+        resp = requests.get(channel_url, headers=headers)
+        soup = BeautifulSoup(resp.text, "html.parser")
 
-        # 2. Load HK01 property market page
-        driver.get("https://www.hk01.com/channel/399/地產樓市")
-        time.sleep(3)
-        soup = BeautifulSoup(driver.page_source, "html.parser")
-
-        # 3. Extract article links
-        article_divs = soup.select("div.content-card--article")
+        # Extract up to 5 article links
         links = []
-        for div in article_divs:
-            a_tag = div.find("a", href=True)
-            if a_tag:
-                href = a_tag["href"]
-                full_url = "https://www.hk01.com" + href if href.startswith("/") else href
+        for card in soup.select("div.content-card--article a[href]"):
+            href = card["href"]
+            full_url = base_url + href if href.startswith("/") else href
+            if full_url not in links:
                 links.append(full_url)
+            if len(links) >= 5:
+                break
 
-        links = links[:5]
-
-        # 4. Scrape each article
+        # Scrape each article
         articles = []
         for url in links:
             try:
-                driver.get(url)
-                time.sleep(2)
-                art_soup = BeautifulSoup(driver.page_source, "html.parser")
+                res = requests.get(url, headers=headers)
+                art_soup = BeautifulSoup(res.text, "html.parser")
 
                 title = art_soup.find("h1").get_text(strip=True) if art_soup.find("h1") else ""
+
                 date_text = ""
                 for span in art_soup.find_all("span"):
                     if span.get_text(strip=True).startswith("出版"):
                         date_text = span.get_text(strip=True).replace("出版", "").strip()
                         break
+
                 og_image = art_soup.find("meta", property="og:image")
                 photo_url = og_image["content"] if og_image else ""
 
@@ -72,19 +63,17 @@ def run_scraper():
             except Exception as e:
                 articles.append({
                     "title": f"Error scraping {url}",
-                    "date": "",
                     "summary": str(e),
-                    "photo_url": "",
-                    "link": url
+                    "link": url,
+                    "date": "",
+                    "photo_url": ""
                 })
 
-        driver.quit()
         return jsonify({"articles": articles})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Run the app
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
