@@ -1,6 +1,5 @@
 from flask import Flask, jsonify
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+import undetected_chromedriver as uc
 from bs4 import BeautifulSoup
 import time
 import os
@@ -14,22 +13,22 @@ def home():
 @app.route("/run", methods=["GET"])
 def run_scraper():
     try:
-        # Setup headless Chrome for Render
-        options = Options()
+        # === 1. Setup undetected Chrome driver ===
+        options = uc.ChromeOptions()
         options.add_argument("--headless")
-        options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
+        options.add_argument("--disable-gpu")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--window-size=1920x1080")
 
-        driver = webdriver.Chrome(options=options)
+        driver = uc.Chrome(options=options)
 
-        # Step 1: Go to HK01 property market page
+        # === 2. Go to HK01 Property Market page ===
         driver.get("https://www.hk01.com/channel/399/地產樓市")
         time.sleep(3)
         soup = BeautifulSoup(driver.page_source, "html.parser")
 
-        # Step 2: Extract article links
+        # === 3. Extract article links ===
         article_divs = soup.select("div.content-card--article")
         links = []
         for div in article_divs:
@@ -39,17 +38,11 @@ def run_scraper():
                 full_url = "https://www.hk01.com" + href if href.startswith("/") else href
                 links.append(full_url)
 
-        # Step 3: Scrape up to 5 unique articles
+        links = links[:5]  # Limit to 5
+
+        # === 4. Scrape details from each article ===
         articles = []
-        seen_links = set()
-
         for url in links:
-            if len(articles) >= 5:
-                break
-            if url in seen_links:
-                continue
-            seen_links.add(url)
-
             try:
                 driver.get(url)
                 time.sleep(2)
@@ -85,7 +78,7 @@ def run_scraper():
 
             except Exception as e:
                 articles.append({
-                    "title": f"❌ Error scraping {url}",
+                    "title": f"Error scraping {url}",
                     "date": "",
                     "summary": str(e),
                     "photo_url": "",
@@ -98,6 +91,7 @@ def run_scraper():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# === Flask app run config (Render-compatible) ===
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
