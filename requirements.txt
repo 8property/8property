@@ -26,4 +26,4 @@ urllib3==2.4.0
 websocket-client==1.8.0
 Werkzeug==3.0.0
 wsproto==1.2.0
-undetected-chromedriver==3.5.5
+git+https://github.com/ultrafunkamsterdam/undetected-chromedriver.git@v3.5.5
