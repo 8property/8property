@@ -52,13 +52,14 @@ def run_scraper():
                 full_text = "\n".join([p.get_text(strip=True) for p in paragraphs])
                 summary = full_text[:300] + "..." if len(full_text) > 300 else full_text
 
-                articles.append({
-                    "title": title,
-                    "date": date_text,
-                    "summary": summary,
-                    "photo_url": photo_url,
-                    "link": url
-                })
+                if summary:
+                    articles.append({
+                        "title": title,
+                        "date": date_text,
+                        "summary": summary,
+                        "photo_url": photo_url,
+                        "link": url
+                    })
 
             except Exception as e:
                 articles.append({
@@ -77,3 +78,5 @@ def run_scraper():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
+
+
