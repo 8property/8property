@@ -52,14 +52,13 @@ def run_scraper():
                 full_text = "\n".join([p.get_text(strip=True) for p in paragraphs])
                 summary = full_text[:300] + "..." if len(full_text) > 300 else full_text
 
-                if summary.strip():  # 確保 summary 不為空
-                    articles.append({
-                        "title": title,
-                        "date": date_text,
-                        "summary": summary,
-                        "photo_url": photo_url,
-                        "link": url
-                    })
+                articles.append({
+                    "title": title,
+                    "date": date_text,
+                    "summary": summary,
+                    "photo_url": photo_url,
+                    "link": url
+                })
 
             except Exception as e:
                 articles.append({
