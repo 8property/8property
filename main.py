@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 import requests
 from bs4 import BeautifulSoup
 import os
+from app import app
 
 app = Flask(__name__)
 
